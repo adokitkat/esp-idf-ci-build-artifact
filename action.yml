@@ -1,0 +1,44 @@
+name: "ESP-IDF Build Artifact"
+description: "This action builds ESP-IDF firmware and uploads it as build artifact."
+
+inputs:
+  path:
+    description: "Relative path under $GITHUB_WORKSPACE to place the repository"
+    default: ""
+    required: false
+  esp_idf_version:
+    description: "Version of ESP-IDF docker image to use"
+    default: "latest"
+    required: false
+  target:
+    description: "ESP32 variant to build for"
+    default: "esp32"
+    required: false
+  command:
+    description: "Command to run inside the docker container (default: builds the project)"
+    default: "idf.py build"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - run: mkdir -p build
+
+    - name: esp-idf build
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: ${{ inputs.esp_idf_version }}
+        target: ${{ inputs.target }}
+        path: ${{ inputs.path }}
+        command: ${{ inputs.command }}
+
+    - run: find build -maxdepth 1 -name '*.bin' -exec cp "{}" fw.bin \;
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: fw.bin
